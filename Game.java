@@ -1,14 +1,155 @@
 import java.util.Scanner;
 import java.lang.Math;
 
+/**
+	This class is responsible for the setup of every other class and having all the objects interact.
+*/
 public class Game{
-	private static Scanner in = new Scanner(System.in);
+	
+	private Scanner in;
+	private Player p1;
+	private Enemy[] enemy;
+	private RoomGenerator[][] maze;
+	private Item[] item;
+	private int maze_size, end_x, end_y, enemyCount;
+	
+	public Game(){
+		in = new Scanner(System.in);
+		System.out.print("Enter in the size of the maze: ");
+		maze_size = in.nextInt(); //This variable declares the size of the maze. The number of rooms is maze_size squared
+		maze = new RoomGenerator[maze_size][maze_size];
+		
+		end_x = -1;
+		end_y = -1;
+		
+		//Generates Player with random position and semi-random(less room for variation) stats
+		p1 = new Player((int)((Math.random()*16)+5),(int)((Math.random()*51)+50),(int)((Math.random()*16)+5),(int)((Math.random()*maze_size)),(int)((Math.random()*maze_size)));
+		
+		
+		
+		//Generates rooms without going outside of array bounds or passing nullPointerExceptions
+		
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		
+		System.out.println("Creating rooms...");
+		
+		
+		//Generates blank slate rooms (This is what stops the code from throwing nullPointerExceptions
+		for(int i = 0; i < maze_size; i++){
+			for(int j = 0; j < maze_size; j++){
+				maze[j][i] = new RoomGenerator();
+			}
+		}
+		
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		
+		System.out.println("Generating doors...");
+		
+		//These two for loops are what do the "real" generation of the rooms
+		for(int i = 0; i < maze_size; i++){
+			for(int j = 0; j < maze_size; j++){
+				if(i>0){//If minus one goes outside of array bounds
+					if(j>0)//If minus one goes outside of array bounds
+						maze[j][i] = new RoomGenerator(3, 1, maze[j][i-1].doorSouth(), maze[j-1][i].doorEast(), maze, j, i, maze_size);
+					else
+						maze[j][i] = new RoomGenerator(3, 1, maze[j][i-1].doorSouth(), maze[j][i].doorEast(), maze, j, i, maze_size);
+				}
+				else{
+					if(j>0){//If minus one goes outside of array bounds
+						maze[j][i] = new RoomGenerator(3, 1, maze[j][i].doorSouth(), maze[j-1][i].doorEast(), maze, j, i, maze_size);
+					}
+					else{
+						maze[j][i] = new RoomGenerator(3, 1, maze[j][i].doorSouth(), maze[j][i].doorEast(), maze, j, i, maze_size);
+					}
+				}
+			}
+		}
+		
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		
+		System.out.println("Checking rooms for faults...");
+		
+		//These two for loops are what makes sure that there are no problems with the doors
+		for(int i = 0; i < maze_size; i++){
+			for(int j = 0; j < maze_size; j++){
+				if(maze[j][i].doorSouth() && i < maze_size-1)
+					maze[j][i+1].change_doorNorth();
+				if(maze[j][i].doorNorth() && i > 0)
+					maze[j][i-1].change_doorSouth();
+				if(maze[j][i].doorEast() && j < maze_size-1)
+					maze[j+1][i].change_doorWest();
+				if(maze[j][i].doorWest() && j > 0)
+					maze[j-1][i].change_doorEast();
+				
+				if(i == 0  &&  maze[j][i].doorNorth()){
+					maze[j][i].false_doorNorth();
+				}
+				if(i == maze_size-1  &&  maze[j][i].doorSouth()){
+					maze[j][i].false_doorSouth();
+				}
+				if(j == maze_size-1  &&  maze[j][i].doorEast()){
+					maze[j][i].false_doorEast();
+				}
+				if(j == 0  &&  maze[j][i].doorWest()){
+					maze[j][i].false_doorWest();
+				}
+			}
+		}
+		
+		//Room Generation end
+		
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		
+		//Generates random amount of enemies with random stats
+		System.out.println("Generating enemies and items...");
+		
+		enemyCount = (int)((Math.random()*((maze_size*maze_size)/4))+((maze_size*maze_size)/4));
+		enemy = new Enemy[enemyCount];
+		item = new Item[enemyCount];
+		for(int i = 0; i<enemyCount; i++){
+			item[i] = new Item(maze_size);
+			enemy[i] = new Enemy((int)((Math.random()*30)+1),(int)((Math.random()*120)+1),(int)((Math.random()*30)+1),i,maze,maze_size);
+		}
+		
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		
+		//Chooses the room that is the exit
+		System.out.println("Choosing maze exit point...");
+		
+		end_x = (int)(Math.random() * maze_size);
+		end_y = (int)(Math.random() * maze_size);
+		while(p1.getX() == end_x  &&  p1.getY() == end_y){
+			end_x = (int)(Math.random() * maze_size);
+			end_y = (int)(Math.random() * maze_size);
+		}
+		
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		
+		System.out.println("(Hint: There are " + enemyCount + " Items and Enemies)");
+		
+		System.out.println();
+		System.out.println();
+	}
+	
+	
 	
 	/**
 		This method is the main combat sequence of the game. It determines death, running, and uses user input to determine what to do next.
 		@param Enemy enemy, Player p1, Roomgenerator[][] maze
 	*/
-	public static void combatSequence(Enemy enemy, Player p1, RoomGenerator[][] maze){
+	public void combatSequence(Enemy enemy){
 		
 		int decision = 0;
 		int original = enemy.getHealth();
@@ -57,162 +198,27 @@ public class Game{
 		}
 	}
 	
-	public static void main(String[] args){
-		System.out.print("Enter in the size of the maze: ");
-		int maze_size = in.nextInt(); //This variable declares the size of the maze. The number of rooms is maze_size squared
-		RoomGenerator[][] maze = new RoomGenerator[maze_size][maze_size];
+	
+	
+	/**
+		This method is what runs the game.
+	*/
+	public void runGame(){
 		
-		int end_x = -1;
-		int end_y = -1;
-		
-		//Generates Player with random position and semi-random(less room for variation) stats
-		Player p1 = new Player((int)((Math.random()*16)+5),(int)((Math.random()*51)+50),(int)((Math.random()*16)+5),(int)((Math.random()*maze_size)),(int)((Math.random()*maze_size)));
-		
-		
-		
-		//Generates rooms without going outside of array bounds or passing nullPointerExceptions
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		System.out.println("Creating rooms...");
-		
-		
-		//Generates blank slate rooms (This is what stops the code from throwing nullPointerExceptions
-		for(int i = 0; i < maze_size; i++){
-			for(int j = 0; j < maze_size; j++){
-				maze[j][i] = new RoomGenerator();
-			}
-		}
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		System.out.println("Generating doors...");
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		//These two for loops are what do the "real" generation of the rooms
-		for(int i = 0; i < maze_size; i++){
-			for(int j = 0; j < maze_size; j++){
-				if(i>0){//If minus one goes outside of array bounds
-					if(j>0)//If minus one goes outside of array bounds
-						maze[j][i] = new RoomGenerator(3, 1, maze[j][i-1].doorSouth(), maze[j-1][i].doorEast(), maze, j, i, maze_size);
-					else
-						maze[j][i] = new RoomGenerator(3, 1, maze[j][i-1].doorSouth(), maze[j][i].doorEast(), maze, j, i, maze_size);
-				}
-				else{
-					if(j>0){//If minus one goes outside of array bounds
-						maze[j][i] = new RoomGenerator(3, 1, maze[j][i].doorSouth(), maze[j-1][i].doorEast(), maze, j, i, maze_size);
-					}
-					else{
-						maze[j][i] = new RoomGenerator(3, 1, maze[j][i].doorSouth(), maze[j][i].doorEast(), maze, j, i, maze_size);
-					}
-				}
-			}
-		}
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		System.out.println("Checking rooms for faults...");
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		//These two for loops are what makes sure that there are no problems with the doors
-		for(int i = 0; i < maze_size; i++){
-			for(int j = 0; j < maze_size; j++){
-				if(maze[j][i].doorSouth() && i < maze_size-1)
-					maze[j][i+1].change_doorNorth();
-				if(maze[j][i].doorNorth() && i > 0)
-					maze[j][i-1].change_doorSouth();
-				if(maze[j][i].doorEast() && j < maze_size-1)
-					maze[j+1][i].change_doorWest();
-				if(maze[j][i].doorWest() && j > 0)
-					maze[j-1][i].change_doorEast();
-				
-				if(i == 0  &&  maze[j][i].doorNorth()){
-					maze[j][i].false_doorNorth();
-				}
-				if(i == maze_size-1  &&  maze[j][i].doorSouth()){
-					maze[j][i].false_doorSouth();
-				}
-				if(j == maze_size-1  &&  maze[j][i].doorEast()){
-					maze[j][i].false_doorEast();
-				}
-				if(j == 0  &&  maze[j][i].doorWest()){
-					maze[j][i].false_doorWest();
-				}
-			}
-		}
-		
-		//Room Generation end
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		//Generates random amount of enemies with random stats
-		System.out.println("Generating enemies and items...");
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		final int n = (int)((Math.random()*((maze_size*maze_size)/4))+((maze_size*maze_size)/4));
-		Enemy[] enemy = new Enemy[n];
-		Item[] item = new Item[n];
-		for(int i = 0; i<n; i++){
-			item[i] = new Item(maze_size);
-			System.out.println("Item " + i + " has been created");
-			enemy[i] = new Enemy((int)((Math.random()*30)+1),(int)((Math.random()*120)+1),(int)((Math.random()*30)+1),i,maze,maze_size);
-			System.out.println("Enemy " + i + " has been created");
-		}
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		//Chooses the room that is the exit
-		System.out.println("Choosing maze exit point...");
-		
-		end_x = (int)(Math.random() * maze_size);
-		end_y = (int)(Math.random() * maze_size);
-		while(p1.getX() == end_x  &&  p1.getY() == end_y){
-			end_x = (int)(Math.random() * maze_size);
-			end_y = (int)(Math.random() * maze_size);
-		}
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		System.out.println("(Hint: There are " + n + " Items and Enemies)");
-		
-		System.out.println();
-		System.out.println();
-		System.out.println();
 		while((p1.getX()!=end_x || p1.getY()!=end_y)  &&  p1.getHealth() > 0){
 			
 			
 			p1.Player_Move(maze);
 			
-			for(int i = 0; i<n; i++)
+			for(int i = 0; i<enemyCount; i++)
 				enemy[i].Enemy_Move(maze);
 			
 			if(maze[p1.getX()][p1.getY()].OccupyID() >= 0)
 				if(maze[p1.getX()][p1.getY()].isOccupied())
-					combatSequence(enemy[maze[p1.getX()][p1.getY()].OccupyID()], p1, maze);
+					combatSequence(enemy[maze[p1.getX()][p1.getY()].OccupyID()]);
 			
 			if(p1.getHealth() > 0)
-				for(int i = 0; i<n; i++){
+				for(int i = 0; i<enemyCount; i++){
 					if(p1.getX() == item[i].getX()  &&  p1.getY() == item[i].getY()){
 						System.out.println();
 						System.out.println();
